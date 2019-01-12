@@ -147,73 +147,53 @@ def compute_features(img):
     return feat
 
 
-# function to calculate BRISQUE quality score 
-# takes input of the image path
-def test_measure_BRISQUE(imgPath):
-    # read image from given path
-    dis = cv2.imread(imgPath, 1)
-    if(dis is None):
-        print("Wrong image path given")
-        print("Exiting...")
-        sys.exit(0)
-    return get_BRISQUE_score(dis)
+class ImageQualityBRISQUE:
+    def __init__(self, init_data_dir, logger=None):
+        # load model
+        self.model = svmutil.svm_load_model(os.path.join(init_data_dir, "allmodel"))
+        self.logger = logger
+        if self.logger is not None:
+            self.logger.debug("BRISQUE image metric has been loaded")
 
+    def get_score(self, cv_image):
+        # convert to gray scale
+        dis = cv2.cvtColor(cv_image, cv2.COLOR_BGR2GRAY)
 
-# function to calculate BRISQUE quality score
-# takes input of the numpy image (BGR)
-def get_BRISQUE_score(cv_image):
-    # convert to gray scale
-    dis = cv2.cvtColor(cv_image, cv2.COLOR_BGR2GRAY)
+        # compute feature vectors of the image
+        features = compute_features(dis)
 
-    # compute feature vectors of the image
-    features = compute_features(dis)
+        # rescale the brisqueFeatures vector from -1 to 1
+        x = [0]
 
-    # rescale the brisqueFeatures vector from -1 to 1
-    x = [0]
-    
-    # pre loaded lists from C++ Module to rescale brisquefeatures vector to [-1, 1]
-    min_= [0.336999 ,0.019667 ,0.230000 ,-0.125959 ,0.000167 ,0.000616 ,0.231000 ,-0.125873 ,0.000165 ,0.000600 ,0.241000 ,-0.128814 ,0.000179 ,0.000386 ,0.243000 ,-0.133080 ,0.000182 ,0.000421 ,0.436998 ,0.016929 ,0.247000 ,-0.200231 ,0.000104 ,0.000834 ,0.257000 ,-0.200017 ,0.000112 ,0.000876 ,0.257000 ,-0.155072 ,0.000112 ,0.000356 ,0.258000 ,-0.154374 ,0.000117 ,0.000351]
-    
-    max_= [9.999411, 0.807472, 1.644021, 0.202917, 0.712384, 0.468672, 1.644021, 0.169548, 0.713132, 0.467896, 1.553016, 0.101368, 0.687324, 0.533087, 1.554016, 0.101000, 0.689177, 0.533133, 3.639918, 0.800955, 1.096995, 0.175286, 0.755547, 0.399270, 1.095995, 0.155928, 0.751488, 0.402398, 1.041992, 0.093209, 0.623516, 0.532925, 1.042992, 0.093714, 0.621958, 0.534484]
+        # pre loaded lists from C++ Module to rescale brisquefeatures vector to [-1, 1]
+        min_= [0.336999 ,0.019667 ,0.230000 ,-0.125959 ,0.000167 ,0.000616 ,0.231000 ,-0.125873 ,0.000165 ,0.000600 ,0.241000 ,-0.128814 ,0.000179 ,0.000386 ,0.243000 ,-0.133080 ,0.000182 ,0.000421 ,0.436998 ,0.016929 ,0.247000 ,-0.200231 ,0.000104 ,0.000834 ,0.257000 ,-0.200017 ,0.000112 ,0.000876 ,0.257000 ,-0.155072 ,0.000112 ,0.000356 ,0.258000 ,-0.154374 ,0.000117 ,0.000351]
 
-    # append the rescaled vector to x 
-    for i in range(0, 36):
-        min = min_[i]
-        max = max_[i] 
-        x.append(-1 + (2.0/(max - min) * (features[i] - min)))
-    
-    # load model 
-    model = svmutil.svm_load_model("/opt/learnopencv/ImageMetrics/Python/allmodel")
+        max_= [9.999411, 0.807472, 1.644021, 0.202917, 0.712384, 0.468672, 1.644021, 0.169548, 0.713132, 0.467896, 1.553016, 0.101368, 0.687324, 0.533087, 1.554016, 0.101000, 0.689177, 0.533133, 3.639918, 0.800955, 1.096995, 0.175286, 0.755547, 0.399270, 1.095995, 0.155928, 0.751488, 0.402398, 1.041992, 0.093209, 0.623516, 0.532925, 1.042992, 0.093714, 0.621958, 0.534484]
 
-    # create svm node array from python list
-    x, idx = gen_svm_nodearray(x[1:], isKernel=(model.param.kernel_type == PRECOMPUTED))
-    x[36].index = -1 # set last index to -1 to indicate the end.
-	
-	# get important parameters from model
-    svm_type = model.get_svm_type()
-    is_prob_model = model.is_probability_model()
-    nr_class = model.get_nr_class()
-    
-    if svm_type in (ONE_CLASS, EPSILON_SVR, NU_SVC):
-        # here svm_type is EPSILON_SVR as it's regression problem
-        nr_classifier = 1
-    dec_values = (c_double * nr_classifier)()
-    
-    # calculate the quality score of the image using the model and svm_node_array
-    qualityscore = svmutil.libsvm.svm_predict_probability(model, x, dec_values)
+        # append the rescaled vector to x
+        for i in range(0, 36):
+            min = min_[i]
+            max = max_[i]
+            x.append(-1 + (2.0/(max - min) * (features[i] - min)))
 
-    return qualityscore
+        # create svm node array from python list
+        x, idx = gen_svm_nodearray(x[1:], isKernel=(model.param.kernel_type == PRECOMPUTED))
+        x[36].index = -1 # set last index to -1 to indicate the end.
 
+        # get important parameters from model
+        svm_type = self.model.get_svm_type()
+        is_prob_model = self.model.is_probability_model()
+        nr_class = self.model.get_nr_class()
 
-if __name__ == "__main__":
-    # exit if input argument not given
-    if(len(sys.argv) != 2):
-        print("Please give input argument of the image path.")
-        print("Arguments expected: <image_path>")
-        print("--------------------------------")
-        print("Exiting")
-        sys.exit(0)
+        if svm_type in (ONE_CLASS, EPSILON_SVR, NU_SVC):
+            # here svm_type is EPSILON_SVR as it's regression problem
+            nr_classifier = 1
+        dec_values = (c_double * nr_classifier)()
 
-    # calculate quality score
-    qualityscore = test_measure_BRISQUE(sys.argv[1])
-    print("Score of the given image: ", qualityscore)
+        # calculate the quality score of the image using the model and svm_node_array
+        qualityscore = svmutil.libsvm.svm_predict_probability(self.model, x, dec_values)
+
+        if self.logger is not None:
+            self.logger.debug("BRISQUE: {}".format(qualityscore))
+
+        return qualityscore
