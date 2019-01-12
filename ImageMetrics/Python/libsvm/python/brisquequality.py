@@ -183,7 +183,7 @@ def get_BRISQUE_score(cv_image):
         x.append(-1 + (2.0/(max - min) * (features[i] - min)))
     
     # load model 
-    model = svmutil.svm_load_model("allmodel")
+    model = svmutil.svm_load_model("/opt/learnopencv/ImageMetrics/Python/allmodel")
 
     # create svm node array from python list
     x, idx = gen_svm_nodearray(x[1:], isKernel=(model.param.kernel_type == PRECOMPUTED))
