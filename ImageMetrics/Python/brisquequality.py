@@ -142,6 +142,7 @@ def compute_features(img):
         im_original = cv2.resize(im_original, (0,0), fx=0.5, fy=0.5, interpolation=cv2.INTER_CUBIC)
     return feat
 
+
 # function to calculate BRISQUE quality score 
 # takes input of the image path
 def test_measure_BRISQUE(imgPath):
@@ -151,8 +152,14 @@ def test_measure_BRISQUE(imgPath):
         print("Wrong image path given")
         print("Exiting...")
         sys.exit(0)
+    return get_BRISQUE_score(dis)
+
+
+# function to calculate BRISQUE quality score
+# takes input of the numpy image (BGR)
+def get_BRISQUE_score(cv_image):
     # convert to gray scale
-    dis = cv2.cvtColor(dis, cv2.COLOR_BGR2GRAY)
+    dis = cv2.cvtColor(cv_image, cv2.COLOR_BGR2GRAY)
 
     # compute feature vectors of the image
     features = compute_features(dis)
