@@ -177,7 +177,7 @@ class ImageQualityBRISQUE:
             x.append(-1 + (2.0/(max - min) * (features[i] - min)))
 
         # create svm node array from python list
-        x, idx = gen_svm_nodearray(x[1:], isKernel=(model.param.kernel_type == PRECOMPUTED))
+        x, idx = gen_svm_nodearray(x[1:], isKernel=(self.model.param.kernel_type == PRECOMPUTED))
         x[36].index = -1 # set last index to -1 to indicate the end.
 
         # get important parameters from model
