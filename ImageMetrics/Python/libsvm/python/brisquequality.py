@@ -21,6 +21,7 @@ else:
     from svm import *
     from svmutil import *
 
+
 # AGGD fit model, takes input as the MSCN Image / Pair-wise Product
 def AGGDfit(structdis):
     # variables to count positive pixels / negative pixels and their squared sum
@@ -65,6 +66,7 @@ def AGGDfit(structdis):
 
     return [lsigma_best, rsigma_best, gamma_best] 
 
+
 def func(gam, prevgamma, prevdiff, sampling, rhatnorm):
     while(gam < 10):
         r_gam = tgamma(2/gam) * tgamma(2/gam) / (tgamma(1/gam) * tgamma(3/gam))
@@ -75,6 +77,7 @@ def func(gam, prevgamma, prevdiff, sampling, rhatnorm):
         gam += sampling
     gamma_best = prevgamma
     return gamma_best
+
 
 def compute_features(img):
     scalenum = 2
@@ -143,6 +146,7 @@ def compute_features(img):
         im_original = cv2.resize(im_original, (0,0), fx=0.5, fy=0.5, interpolation=cv2.INTER_CUBIC)
     return feat
 
+
 # function to calculate BRISQUE quality score 
 # takes input of the image path
 def test_measure_BRISQUE(imgPath):
@@ -152,8 +156,14 @@ def test_measure_BRISQUE(imgPath):
         print("Wrong image path given")
         print("Exiting...")
         sys.exit(0)
+    return get_BRISQUE_score(dis)
+
+
+# function to calculate BRISQUE quality score
+# takes input of the numpy image (BGR)
+def get_BRISQUE_score(cv_image):
     # convert to gray scale
-    dis = cv2.cvtColor(dis, cv2.COLOR_BGR2GRAY)
+    dis = cv2.cvtColor(cv_image, cv2.COLOR_BGR2GRAY)
 
     # compute feature vectors of the image
     features = compute_features(dis)
@@ -193,6 +203,7 @@ def test_measure_BRISQUE(imgPath):
     qualityscore = svmutil.libsvm.svm_predict_probability(model, x, dec_values)
 
     return qualityscore
+
 
 # exit if input argument not given
 if(len(sys.argv) != 2):
